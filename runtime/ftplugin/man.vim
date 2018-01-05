@@ -173,7 +173,15 @@ func <SID>GetPage(...)
 
   " Ensure Vim is not recursively invoked (man-db does this) when doing ctrl-[
   " on a man page reference by unsetting MANPAGER.
-  silent exec "r !env -u MANPAGER man ".s:GetCmdArg(sect, page)." | col -b"
+  " Some versions of env(1) do not support the '-u' option, and in such case
+  " we set MANPAGER=cat.
+  if !exists('s:env_has_u')
+    call system('env -u x true')
+    let s:env_has_u = (v:shell_error == 0)
+  endif
+  let env_cmd = s:env_has_u ? 'env -u MANPAGER' : 'env MANPAGER=cat'
+  let man_cmd = env_cmd . ' man ' . s:GetCmdArg(sect, page) . ' | col -b'
+  silent exec "r !" . man_cmd
 
   if unsetwidth
     let $MANWIDTH = ''
