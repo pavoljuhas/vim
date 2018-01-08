@@ -49,16 +49,21 @@ if !exists("s:man_tag_depth")
 
 let s:man_tag_depth = 0
 
-let s:man_sect_arg = ""
-let s:man_find_arg = "-w"
-try
-  if !has("win32") && $OSTYPE !~ 'cygwin\|linux' && system('uname -s') =~ "SunOS" && system('uname -r') =~ "^5"
-    let s:man_sect_arg = "-s"
-    let s:man_find_arg = "-l"
+func <SID>ConfManArgs()
+  if exists("s:man_sect_arg")
+    return
   endif
-catch /E145:/
-  " Ignore the error in restricted mode
-endtry
+  let s:man_sect_arg = ""
+  let s:man_find_arg = "-w"
+  try
+    if !has("win32") && $OSTYPE !~ 'cygwin\|linux' && system('uname -s') =~ "SunOS" && system('uname -r') =~ "^5"
+      let s:man_sect_arg = "-s"
+      let s:man_find_arg = "-l"
+    endif
+  catch /E145:/
+    " Ignore the error in restricted mode
+  endtry
+endfunc
 
 func <SID>PreGetPage(cnt)
   if a:cnt == 0
@@ -87,10 +92,12 @@ func <SID>GetCmdArg(sect, page)
   if a:sect == ''
     return a:page
   endif
+  call <SID>ConfManArgs()
   return s:man_sect_arg.' '.a:sect.' '.a:page
 endfunc
 
 func <SID>FindPage(sect, page)
+  call <SID>ConfManArgs()
   let where = system("man ".s:man_find_arg.' '.s:GetCmdArg(a:sect, a:page))
   if where !~ "^/"
     if matchstr(where, " [^ ]*$") !~ "^ /"
